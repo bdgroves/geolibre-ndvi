@@ -42,12 +42,29 @@ Then work through `notebooks/` in order.
 Shared logic lives in `src/geolibre_ndvi/ndvi.py` so the notebooks and CI run
 the same code path.
 
+See **[`docs/findings.md`](docs/findings.md)** for what was actually verified
+against GeoLibre 2.5.0 — the algorithm inventory, the project schema, and the
+limits below with evidence attached.
+
 ## Gotchas worth knowing before you hit them
 
-**Local rasters are session-scoped.** `add_raster()` accepts a local path via a
-bundled localhost server, but a saved project won't restore it later, and it
-fails entirely where the browser can't reach the kernel's localhost (Colab,
-JupyterHub, remote servers). Anything you publish needs a hosted COG URL.
+**The notebook widget reaches vector processing only.** `list_algorithms()`
+returns 40 algorithms, all vector. No raster tools, no Spectral Index — those
+need the desktop app's rasterio sidecar. NDVI is not computable through
+`run_algorithm()` from a notebook, which is why xarray does the work here.
+
+**`colormap` and `rescale` are not style properties.** They live at
+`metadata.rasterState` in the project JSON. Put them in `style` and the app
+silently renders grey.
+
+**Raster layers are not identifiable.** They save with
+`"identifiable": false`; click-to-inspect won't read pixel values.
+
+**Local rasters are session-scoped.** `add_raster()` with a local path
+serialises as `http://127.0.0.1:<port>/_geolibre_local/<token>/...` — ephemeral
+port, per-session token, dead on reopen. It also fails entirely where the
+browser can't reach the kernel's localhost (Colab, JupyterHub, remote servers).
+Anything you publish needs a hosted COG URL.
 
 **Browser vs. desktop.** Local file dialogs, local MBTiles, local raster reads,
 and PostgreSQL require the installed Tauri app. The web build is URL-sources

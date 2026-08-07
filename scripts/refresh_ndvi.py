@@ -68,35 +68,132 @@ def _write_project(bbox, datetime_range) -> None:
     """Build the project headlessly.
 
     Map() spins up the bundled localhost server and expects a browser to
-    talk to, which is wrong for CI. The builders underneath are the same
-    ones the MCP server uses, so this stays interchangeable with anything
-    the widget or the desktop app produces.
+    talk to, which is wrong for CI -- so this writes the JSON directly.
+
+    The schema below is transcribed from a real save_project() output
+    (GeoLibre 2.5.0), not inferred. Three things are easy to get wrong:
+
+    1. `colormap` and `rescale` live in `metadata.rasterState`, NOT in
+       `style`. Put them in `style` and the app silently ignores them and
+       renders a grey ramp.
+    2. Layer `type` is "cog" while `source.type` is "raster". They
+       disagree on purpose.
+    3. The `metadata` block is load-bearing -- customLayerType,
+       externalDeckLayer, sourceKind, and nativeLayerIds (which echoes the
+       layer's own id) wire up the render path. Omit them and the layer
+       may not draw at all.
+
+    See docs/findings.md.
     """
     import json
+    import uuid
 
     west, south, east, north = bbox
+    layer_id = str(uuid.uuid4())
+
     project = {
-        "version": 1,
+        "version": "0.1.0",
         "name": f"NDVI {datetime_range}",
         "mapView": {
             "center": [(west + east) / 2, (south + north) / 2],
-            "zoom": 9,
+            "zoom": 9.0,
+            "bearing": 0,
+            "pitch": 0,
         },
-        "basemap": "dark",
+        "basemapStyleUrl": "https://tiles.openfreemap.org/styles/dark",
+        "basemapVisible": True,
+        "basemapOpacity": 1,
         "layers": [
             {
-                "id": "ndvi",
+                "id": layer_id,
                 "name": f"NDVI median ({datetime_range})",
-                "type": "raster",
-                "source": {"type": "cog", "url": COG_URL},
-                "style": {"colormap": "rdylgn", "rescale": [[-0.2, 0.9]]},
+                "type": "cog",
                 "visible": True,
-                "opacity": 1.0,
+                "opacity": 1,
+                "style": _RASTER_STYLE_DEFAULTS,
+                "metadata": {
+                    "customLayerType": "raster",
+                    "externalDeckLayer": True,
+                    "externalNativeLayer": True,
+                    "identifiable": False,
+                    "nativeLayerIds": [layer_id],
+                    "panelCollapsed": True,
+                    "rasterOverlayMode": "interleaved",
+                    "rasterSource": "url",
+                    "rasterState": {
+                        "rescale": [[-0.2, 0.9]],
+                        "colormap": "rdylgn",
+                    },
+                    "sourceIds": [],
+                    "sourceKind": "maplibre-gl-raster",
+                },
+                "source": {"type": "raster", "url": COG_URL},
+                "sourcePath": COG_URL,
             }
         ],
+        "styles": {},
+        "preferences": {
+            "map": {
+                "restrictBounds": False,
+                "bounds": [-180, -85, 180, 85],
+                "minZoom": 0,
+                "maxZoom": 24,
+                "maxPitch": 85,
+                "renderWorldCopies": True,
+            },
+            "environmentVariables": [],
+        },
+        "metadata": {},
     }
     PROJECT_PATH.parent.mkdir(parents=True, exist_ok=True)
     PROJECT_PATH.write_text(json.dumps(project, indent=2))
+
+
+# GeoLibre writes this full property bag onto every layer regardless of type.
+# Reproduced verbatim so a hand-built project round-trips through the app
+# without the diff noise of missing keys.
+_RASTER_STYLE_DEFAULTS = {
+    "minZoom": 0,
+    "maxZoom": 24,
+    "fillColor": "#3b82f6",
+    "strokeColor": "#1e40af",
+    "strokeWidth": 2,
+    "fillOpacity": 0.6,
+    "circleRadius": 6,
+    "textColor": "#111827",
+    "textHaloColor": "#ffffff",
+    "textHaloWidth": 2,
+    "textSize": 16,
+    "extrusionEnabled": False,
+    "extrusionColor": "#3b82f6",
+    "extrusionOpacity": 0.8,
+    "extrusionHeightProperty": "height",
+    "extrusionHeightScale": 1,
+    "extrusionBase": 0,
+    "extrusionAdvancedStyleEnabled": False,
+    "extrusionColorExpression": "",
+    "extrusionHeightExpression": "",
+    "vectorStyleMode": "single",
+    "vectorStyleProperty": "",
+    "vectorStyleClassCount": 5,
+    "vectorStyleColorRamp": "viridis",
+    "vectorStyleClassificationScheme": "equal-interval",
+    "vectorStyleStops": [
+        {"value": 0, "color": "#dbeafe"},
+        {"value": 1, "color": "#2563eb"},
+    ],
+    "vectorStyleExpression": "",
+    "pointRenderer": "single",
+    "heatmapRadius": 30,
+    "heatmapIntensity": 1,
+    "clusterRadius": 50,
+    "clusterMaxZoom": 14,
+    "rasterBrightnessMin": 0,
+    "rasterBrightnessMax": 1,
+    "rasterSaturation": 0,
+    "rasterContrast": 0,
+    "rasterHueRotate": 0,
+}
 
 
 if __name__ == "__main__":
