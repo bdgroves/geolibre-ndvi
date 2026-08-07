@@ -1,0 +1,42 @@
+[project]
+name = "geolibre-ndvi"
+version = "0.1.0"
+description = "GeoLibre exploration + Sentinel-2 NDVI workflow"
+authors = ["Brooks Groves"]
+channels = ["conda-forge"]
+platforms = ["win-64", "linux-64", "osx-arm64"]
+
+[dependencies]
+python = ">=3.11,<3.13"
+geolibre = "*"
+jupyterlab = "*"
+xarray = "*"
+rioxarray = "*"
+rasterio = "*"
+netcdf4 = "*"
+zarr = "*"
+dask = "*"
+geopandas = "*"
+matplotlib = "*"
+numpy = "*"
+
+# STAC / Planetary Computer stack for the NDVI notebook
+pystac-client = "*"
+planetary-computer = "*"
+odc-stac = "*"
+rio-cogeo = "*"
+
+[pypi-dependencies]
+# The [all] extra (GeoPandas + Shapely helpers for add_geojson/add_vector)
+# is pip-only. GeoPandas already comes from conda above; this just wires
+# up the optional code paths in the geolibre package itself.
+geolibre = { version = "*", extras = ["all", "mcp"] }
+
+[dependencies.pytest]
+version = "*"
+
+[tasks]
+lab     = "jupyter lab"
+test    = { cmd = "pytest tests/ -q", env = { PYTHONPATH = "src" } }
+refresh = { cmd = "python scripts/refresh_ndvi.py", env = { PYTHONPATH = "src" } }
+mcp     = "geolibre-mcp --root ./projects"

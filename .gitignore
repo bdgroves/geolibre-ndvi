@@ -1,0 +1,29 @@
+# pixi
+.pixi/
+pixi.lock
+
+# Python
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+*.egg-info/
+.venv/
+
+# Data products -- regenerate these, don't commit them
+data/*.tif
+data/*.nc
+data/*.zarr/
+!data/.gitkeep
+
+# GeoLibre project outputs (keep the committed examples, ignore scratch)
+projects/scratch*
+projects/*.html
+!projects/.gitkeep
+
+# Credentials -- geolibre redacts these on save_project(), but belt and braces
+.env
+*.geolibre.json.local
+
+# OS
+.DS_Store
+Thumbs.db

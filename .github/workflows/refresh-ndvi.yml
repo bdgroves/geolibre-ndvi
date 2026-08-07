@@ -1,0 +1,49 @@
+# Scheduled NDVI refresh, same shape as the ALPINE-WATCH cadence.
+#
+# BEFORE ENABLING: decide where the COG lives. Committing a GeoTIFF back to
+# the repo works for one small AOI on GitHub Pages, but it bloats history
+# fast. If this outgrows a few MB, push to object storage instead and point
+# the .geolibre.json at the hosted URL -- GeoLibre range-requests COGs, so a
+# remote file is the better path anyway (and the only one that survives a
+# project reopen; local raster paths are session-scoped).
+
+name: Refresh NDVI
+
+on:
+  schedule:
+    - cron: "0 11 * * 1,4"   # Mon + Thu, 11:00 UTC
+  workflow_dispatch:
+    inputs:
+      bbox:
+        description: "west,south,east,north (EPSG:4326)"
+        default: "-121.2,38.6,-120.4,39.2"
+      window_days:
+        description: "Look-back window in days"
+        default: "60"
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: prefix-dev/setup-pixi@v0.8.1
+        with:
+          cache: true
+
+      - name: Compute NDVI composite
+        env:
+          BBOX: ${{ github.event.inputs.bbox || '-121.2,38.6,-120.4,39.2' }}
+          WINDOW_DAYS: ${{ github.event.inputs.window_days || '60' }}
+        run: pixi run refresh
+
+      - name: Commit if changed
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f data/ndvi_latest.tif projects/ndvi-latest.geolibre.json
+          git diff --staged --quiet || git commit -m "chore: refresh NDVI composite"
+          git push
