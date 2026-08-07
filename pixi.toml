@@ -1,4 +1,4 @@
-[project]
+[workspace]
 name = "geolibre-ndvi"
 version = "0.1.0"
 description = "GeoLibre exploration + Sentinel-2 NDVI workflow"
