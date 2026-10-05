@@ -20,7 +20,4 @@ jobs:
         run: pixi run test
 
       - name: Check notebooks are valid JSON
-        run: pixi run python -c "
-          import json, glob, sys;
-          [json.load(open(f)) for f in glob.glob('notebooks/*.ipynb')];
-          print('notebooks ok')"
+        run: pixi run python -c "import json, glob; [json.load(open(f)) for f in glob.glob('notebooks/*.ipynb')]; print('notebooks ok')"
