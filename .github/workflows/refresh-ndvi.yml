@@ -10,8 +10,10 @@
 name: Refresh NDVI
 
 on:
-  schedule:
-    - cron: "0 11 * * 1,4"   # Mon + Thu, 11:00 UTC
+  # Schedule paused (October 2026) per the note above: where the COG lives
+  # hasn't been decided yet, and every scheduled run failed (16 since August).
+  # schedule:
+  #   - cron: "0 11 * * 1,4"   # Mon + Thu, 11:00 UTC
   workflow_dispatch:
     inputs:
       bbox:
@@ -30,9 +32,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # pixi.lock is gitignored, and the cache needs it; without a lock the
+      # setup step failed before anything ran.
       - uses: prefix-dev/setup-pixi@v0.8.1
         with:
-          cache: true
+          cache: false
 
       - name: Compute NDVI composite
         env:

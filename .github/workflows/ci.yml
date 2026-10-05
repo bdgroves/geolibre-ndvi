@@ -14,7 +14,7 @@ jobs:
 
       - uses: prefix-dev/setup-pixi@v0.8.1
         with:
-          cache: true
+          cache: false   # pixi.lock is gitignored; the cache needs one
 
       - name: Run tests
         run: pixi run test
